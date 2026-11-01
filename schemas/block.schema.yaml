@@ -37,7 +37,7 @@ properties:
           additionalProperties: false
           properties:
             table: {type: string}
-            access: {enum: [read, write, read-write]}
+            access: {enum: [read, write, read-write, indirect, store]}
             why: {type: string}
   params:
     oneOf:

@@ -11,7 +11,7 @@ properties:
       required: [target, failure, detection, behavior, recovery]
       additionalProperties: false
       properties:
-        target: {type: string, description: Код интерфейса или хранилища}
+        target: {type: string, description: Код интеграции, хранилища или компонента}
         failure: {type: string}
         detection: {type: string}
         behavior: {type: string}
