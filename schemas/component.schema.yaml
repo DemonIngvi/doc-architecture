@@ -37,6 +37,9 @@ properties:
   responsibility:
     type: string
     minLength: 2
+  not_responsible:
+    type: string
+    minLength: 5
   tech:
     type: string
     minLength: 2
