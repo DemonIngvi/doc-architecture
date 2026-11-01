@@ -11,7 +11,8 @@
   check <dir> --spine <file>  проверить схемы, ссылки и ручные правки Spine
   unit <dir> <ID>             показать единицу и её связи
   impact <dir> <ID>           показать, что затронет отказ или изменение единицы
-  assemble <dir> --prd --epics собрать общие PRD и эпики из папок компонентов
+  assemble <dir> --prd --epics собрать общие PRD, эпики и README компонентов
+  link <dir> --project <корень> поставить в документах ссылки на файлы-владельцы
   pack <dir> --reqs FR-1,...  узкий пакет архитектуры для проверки требований
 """
 from __future__ import annotations
@@ -19,6 +20,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
 import pathlib
 import re
 import sys
@@ -349,6 +351,98 @@ def pack(root, reqs, with_model=False):
     return "\n".join(out + (model_pack(root, wanted) if with_model else []))
 
 
+LINK = re.compile(r"(?<!!)\[([^\]]+)\]\((?!https?:)[^)]*\)")
+PROTECTED = re.compile(r"(```.*?```|!?\[[^\]]*\]\([^)]*\)|\{\{[^}]*\}\}|^#{1,6} [^\n]*$)", re.S | re.M)
+CODE_TERM = re.compile(r"(?<![\w/#-])(NFR-\d+|FR-\d+|AD-\d+|US-[A-Z]+-\d+|I\d{1,2})(?![\w-])")
+
+
+def relative(target, source):
+    return pathlib.PurePath(os.path.relpath(target, source.parent)).as_posix()
+
+
+def link_registry(root):
+    """Куда ведёт имя: файл, который им владеет."""
+    found = {}
+    for path in root.glob("components/*/component.yaml"):
+        found[load(path)["title"]] = path.parent / "README.md"
+    for path in root.glob("components/*/prd.md"):
+        for code in re.findall(r"^#### (FR-\d+):", read(path), re.M):
+            found[code] = path
+    for path in root.glob("decisions/AD-*.yaml"):
+        found[path.stem] = path
+    for path in root.glob("components/*/stories/*.yaml"):
+        found[load(path).get("source", path.stem)] = path
+    for path in [*root.glob("integrations/*.yaml"), *root.glob("components/*/integrations/*.yaml")]:
+        found[path.stem] = path
+    for path in root.rglob("data/model-*.yaml"):
+        found[path.stem.removeprefix("model-")] = path
+    return found
+
+
+def link_text(text, source, registry):
+    """Заменяет имена ссылками на файл-владелец. Повторный запуск ничего не меняет: готовые ссылки защищены."""
+    names = sorted((name for name in registry if not CODE_TERM.fullmatch(name)), key=len, reverse=True)
+    term = re.compile(r"(?<![\w/#-])(" + "|".join(map(re.escape, names)) + r")(?![\w-])") if names else None
+
+    def link(match):
+        target = registry.get(match.group(1))
+        return f"[{match.group(1)}]({relative(target, source)})" if target and target != source else match.group(1)
+
+    def plain(piece):
+        pieces = re.split(r"(`[^`\n]*`|\[[^\]]*\]\([^)]*\))", CODE_TERM.sub(link, piece))
+        for index, part in enumerate(pieces):
+            if index % 2 and part.startswith("`"):
+                inner = part.strip("`")
+                pieces[index] = f"[{part}]({relative(registry[inner], source)})" if inner in registry and registry[inner] != source else part
+            elif not index % 2 and term:
+                pieces[index] = term.sub(link, part)
+        return "".join(pieces)
+
+    return "".join(piece if index % 2 else plain(piece) for index, piece in enumerate(PROTECTED.split(text)))
+
+
+def link_documents(root, project):
+    registry = link_registry(root)
+    files = [*root.glob("components/*/prd.md"), *root.glob("components/*/docs/*.md"), *project.glob("docs/research/*.md"), *project.rglob("docs/source/**/*.md")]
+    changed = 0
+    for path in files:
+        text = read(path)
+        linked = link_text(link_text(text, path, registry), path, registry)
+        if linked != text:
+            write(path, linked)
+            changed += 1
+    return len(files), changed
+
+
+def component_index(root):
+    """README компонента: что это, с кем связан и какие файлы его описывают. Собирается из его единиц."""
+    channels = [(path, load(path)) for path in [*root.glob("integrations/*.yaml"), *root.glob("components/*/integrations/*.yaml")]]
+    titles = {path.parent.name: load(path)["title"] for path in root.glob("components/*/component.yaml")}
+    for path in root.glob("components/*/component.yaml"):
+        unit, folder, key = load(path), path.parent, path.parent.name
+        target = folder / "README.md"
+        lines = [f"# {unit['title']}", "", "> Файл собирается командой `arch.py assemble` из единиц компонента.", "", unit.get("purpose") or unit["responsibility"], ""]
+        if unit.get("does"):
+            lines += ["## Что делает", "", *[f"- {item}" for item in unit["does"]], ""]
+
+        def side(title, mine, other):
+            rows = [(p, u) for p, u in channels if u[mine] == key]
+            if rows:
+                lines.extend([f"## {title}", ""])
+                lines.extend(f"- [{u['id']}]({relative(p, target)}): {titles.get(u[other], u[other])}, {u['purpose']}" for p, u in rows)
+                lines.append("")
+
+        side("Входы", "to", "from")
+        side("Выходы", "from", "to")
+        lines += ["## Из чего состоит", ""]
+        for name, title in (("prd.md", "Требования"), ("stories", "Истории"), ("processes", "Процессы"), ("blocks", "Блоки"), ("functions", "Функции"), ("data", "Данные"),
+                            ("stores", "Хранилища"), ("integrations", "Интеграции"), ("flows", "Потоки"), ("sequences", "Сценарии"), ("endpoints.yaml", "Эндпоинты"), ("approvals.yaml", "Подтверждения")):
+            if (folder / name).exists():
+                lines.append(f"- [{title}]({name})")
+        lines.extend(f"- [{item.stem}](docs/{item.name})" for item in sorted((folder / "docs").glob("*.md")))
+        write(target, "\n".join(lines) + "\n")
+
+
 def render_story(story, title_nfr=""):
     criteria = []
     for item in story["accept"]:
@@ -361,8 +455,9 @@ def render_story(story, title_nfr=""):
 def assemble(root, prd_path, epics_path):
     """Собирает общие PRD и эпики из папок компонентов. Как и Spine, они руками не правятся."""
     folders = [root / "components" / name for name in load(root / "components" / "_order.yaml")["components"]]
+    component_index(root)
     parts = [read(root / "prd" / "head.md")]
-    parts += [read(folder / "prd.md") for folder in folders if (folder / "prd.md").exists()]
+    parts += [LINK.sub(r"\1", read(folder / "prd.md")) for folder in folders if (folder / "prd.md").exists()]
     parts.append(read(root / "prd" / "tail.md"))
     write(prd_path, "\n".join(parts))
     epics, coverage, body = [], [], []
@@ -410,6 +505,9 @@ def main():
     cmd.add_argument("path", type=pathlib.Path)
     cmd.add_argument("--prd", type=pathlib.Path, required=True)
     cmd.add_argument("--epics", type=pathlib.Path, required=True)
+    cmd = sub.add_parser("link")
+    cmd.add_argument("path", type=pathlib.Path)
+    cmd.add_argument("--project", type=pathlib.Path, default=pathlib.Path("."))
     cmd = sub.add_parser("impact")
     cmd.add_argument("path", type=pathlib.Path)
     cmd.add_argument("id")
@@ -443,6 +541,9 @@ def main():
     elif args.command == "assemble":
         count, rows = assemble(args.path, args.prd, args.epics)
         print(f"Собрано компонентов: {count}, строк покрытия: {rows}")
+    elif args.command == "link":
+        total, changed = link_documents(args.path, args.project)
+        print(f"Документов: {total}, изменено: {changed}")
     elif args.command == "impact":
         print("\n".join(impact(args.path, args.id)) or "Ничего не затронуто")
     elif args.command == "pack":
