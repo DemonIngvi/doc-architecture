@@ -53,3 +53,29 @@ properties:
     items: {type: string}
   on_failure: {type: string, minLength: 3}
   why: {type: string}
+  operations:
+    description: Вид service. Эндпоинты или функции блока
+    type: array
+    items:
+      type: object
+      required: [name, caller, via]
+      additionalProperties: false
+      properties:
+        name: {type: string}
+        caller: {type: string}
+        via: {type: string, description: Код интерфейса или слово «внутри»}
+  screens:
+    description: Вид ui. У каждого действия новых и дорабатываемых экранов есть операция API
+    type: array
+    items:
+      type: object
+      required: [path, shows, status, story]
+      additionalProperties: false
+      properties:
+        path: {type: string}
+        shows: {type: string}
+        operation: {type: string}
+        status: {enum: [есть, доработка, новое]}
+        file: {type: string}
+        story: {type: string}
+  schema_ref: {type: string, description: 'Вид storage и config. Ссылка на модель данных или конфиг'}

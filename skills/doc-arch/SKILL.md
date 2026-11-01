@@ -21,4 +21,5 @@ description: Работа с архитектурой в YAML. Использо�
 - Читайте единицу или пакет, а не весь Spine.
 - Новое решение — новый файл `decisions/AD-n.yaml` и строка в `decisions/_order.yaml`. Номера не переиспользуются.
 - Блоки, интерфейсы, хранилища, параметры и FMEA описываются по схемам из `.doc-kit/doc-architecture/schemas/`.
+- Новый блок: скопируйте `.doc-kit/doc-architecture/templates/block.yaml` в `blocks/<компонент>/<блок>.yaml`. Заполненность и ссылки карточки считает `check.py` из `doc-gates`.
 - Если `check` сообщает о ручной правке Spine, перенесите её в YAML и выполните `build`.

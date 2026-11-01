@@ -7,6 +7,10 @@ properties:
   id: {type: string, pattern: '^S\d+$'}
   title: {type: string}
   owner: {type: string}
+  tables:
+    description: Таблицы хранилища, на них ссылаются карточки блоков
+    type: array
+    items: {type: string}
   writes:
     type: array
     items: {type: string}
