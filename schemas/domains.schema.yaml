@@ -1,0 +1,17 @@
+$schema: https://json-schema.org/draft/2020-12/schema
+title: Таблица доменов архитектуры
+type: object
+required: [domains]
+additionalProperties: false
+properties:
+  domains:
+    type: array
+    items:
+      type: object
+      required: [domain, status]
+      additionalProperties: false
+      properties:
+        domain: {type: string}
+        status: {enum: [decided, deferred, question]}
+        rule: {type: string, description: Код AD или строка соглашений}
+        note: {type: string}

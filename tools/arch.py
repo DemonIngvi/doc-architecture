@@ -223,7 +223,7 @@ def schema_for(rel):
         return None
     if top in names and "/" in rel:
         return names[top]
-    return {"params.yaml": "params", "fmea.yaml": "fmea", "quality.yaml": "quality", "types.yaml": "types"}.get(rel)
+    return {"params.yaml": "params", "fmea.yaml": "fmea", "quality.yaml": "quality", "types.yaml": "types", "domains.yaml": "domains"}.get(rel)
 
 
 def check(root, spine):
@@ -316,7 +316,7 @@ def model_pack(root, wanted):
     return ["## Модель системы", dump(trimmed)] if trimmed else []
 
 
-def pack(root, reqs):
+def pack(root, reqs, with_model=False):
     """Собирает только то, что относится к требованиям, вместо всего Spine."""
     wanted = set(reqs)
     chosen = [u for p, u in all_units(root) if p.parent.name == "decisions"
@@ -334,7 +334,7 @@ def pack(root, reqs):
         out += ["## Где живёт", dump(rows)]
     if (root / "deferred.yaml").exists():
         out += ["## Отложено", dump(load(root / "deferred.yaml")["items"])]
-    return "\n".join(out + model_pack(root, wanted))
+    return "\n".join(out + (model_pack(root, wanted) if with_model else []))
 
 
 def expand(ids):
@@ -367,6 +367,7 @@ def main():
     cmd = sub.add_parser("pack")
     cmd.add_argument("path", type=pathlib.Path)
     cmd.add_argument("--reqs", required=True)
+    cmd.add_argument("--model", action="store_true", help="Добавить объекты модели. В G01 выигрыша не дало")
     args = parser.parse_args()
 
     if args.command == "split":
@@ -393,7 +394,7 @@ def main():
     elif args.command == "impact":
         print("\n".join(impact(args.path, args.id)) or "Ничего не затронуто")
     elif args.command == "pack":
-        print(pack(args.path, [r.strip() for r in args.reqs.split(",")]))
+        print(pack(args.path, [r.strip() for r in args.reqs.split(",")], args.model))
 
 
 if __name__ == "__main__":
