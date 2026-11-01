@@ -1,0 +1,15 @@
+$schema: https://json-schema.org/draft/2020-12/schema
+title: История пользователя
+type: object
+required: [id, number, component, role, want, accept, reqs]
+additionalProperties: false
+properties:
+  id: {type: string}
+  number: {type: string}
+  component: {type: string}
+  role: {type: string}
+  want: {type: string}
+  so_that: {type: string}
+  accept: {type: array, items: {type: string}}
+  reqs: {type: array, items: {type: string}}
+  source: {type: string}

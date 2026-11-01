@@ -218,7 +218,7 @@ def schema_for(rel):
     top = rel.split("/")[0]
     names = {"decisions": "decision", "components": "component", "blocks": "block", "integrations": "integration",
              "stores": "store", "actors": "actor", "processes": "process", "services": "service", "systems": "system",
-             "functions": "function", "data": "data", "flows": "flow", "nodes": "node"}
+             "functions": "function", "data": "data", "flows": "flow", "nodes": "node", "stories": "story"}
     if rel.endswith("_order.yaml"):
         return None
     if top in names and "/" in rel:

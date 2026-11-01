@@ -82,3 +82,30 @@ properties:
           type: array
           items:
             type: string
+        id:
+          type: string
+        type:
+          enum:
+          - start
+          - task
+          - gateway
+          - error
+          - end
+        next:
+          type: array
+          items:
+            type: object
+            required:
+            - to
+            additionalProperties: false
+            properties:
+              to:
+                type: string
+              label:
+                type: string
+  component:
+    type: string
+  stories:
+    type: array
+    items:
+      type: string
