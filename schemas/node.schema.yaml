@@ -1,0 +1,43 @@
+$schema: https://json-schema.org/draft/2020-12/schema
+title: 'Узел: где запущены компоненты'
+type: object
+required:
+- id
+- title
+- owner
+- lifecycle
+- criticality
+- environment
+- runs
+additionalProperties: false
+properties:
+  id:
+    type: string
+    pattern: ^[A-Za-z][A-Za-z0-9-]*$
+  title:
+    type: string
+    minLength: 2
+  owner:
+    type: string
+    minLength: 2
+  lifecycle:
+    enum:
+    - planned
+    - active
+    - deprecated
+    - retired
+  criticality:
+    enum:
+    - low
+    - medium
+    - high
+  environment:
+    type: string
+    minLength: 2
+  runs:
+    type: array
+    items:
+      type: string
+  tech:
+    type: string
+    minLength: 2

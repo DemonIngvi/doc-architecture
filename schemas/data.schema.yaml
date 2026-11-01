@@ -1,0 +1,61 @@
+$schema: https://json-schema.org/draft/2020-12/schema
+title: 'Объект данных: логическая сущность'
+type: object
+required:
+- id
+- title
+- owner
+- lifecycle
+- criticality
+- class
+- sensitivity
+additionalProperties: false
+properties:
+  id:
+    type: string
+    pattern: ^[A-Za-z][A-Za-z0-9-]*$
+  title:
+    type: string
+    minLength: 2
+  owner:
+    type: string
+    minLength: 2
+  lifecycle:
+    enum:
+    - planned
+    - active
+    - deprecated
+    - retired
+  criticality:
+    enum:
+    - low
+    - medium
+    - high
+  class:
+    type: string
+    minLength: 2
+  sensitivity:
+    type: string
+    minLength: 2
+  states:
+    type: array
+    items:
+      type: string
+  attributes:
+    type: array
+    items:
+      type: object
+      required:
+      - name
+      - type
+      additionalProperties: false
+      properties:
+        name:
+          type: string
+          minLength: 2
+        type:
+          type: string
+          minLength: 2
+        note:
+          type: string
+          minLength: 2

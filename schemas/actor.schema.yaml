@@ -1,0 +1,40 @@
+$schema: https://json-schema.org/draft/2020-12/schema
+title: 'Участник: роль или внешняя организация'
+type: object
+required:
+- id
+- title
+- owner
+- lifecycle
+- criticality
+- kind
+additionalProperties: false
+properties:
+  id:
+    type: string
+    pattern: ^[A-Za-z][A-Za-z0-9-]*$
+  title:
+    type: string
+    minLength: 2
+  owner:
+    type: string
+    minLength: 2
+  lifecycle:
+    enum:
+    - planned
+    - active
+    - deprecated
+    - retired
+  criticality:
+    enum:
+    - low
+    - medium
+    - high
+  kind:
+    enum:
+    - role
+    - organization
+  goals:
+    type: array
+    items:
+      type: string

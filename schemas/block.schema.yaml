@@ -53,6 +53,9 @@ properties:
     items: {type: string}
   on_failure: {type: string, minLength: 3}
   why: {type: string}
+  functions:
+    type: array
+    items: {type: string}
   operations:
     description: Вид service. Эндпоинты или функции блока
     type: array

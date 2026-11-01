@@ -1,0 +1,73 @@
+$schema: https://json-schema.org/draft/2020-12/schema
+title: 'Интеграция: канал между системами или компонентами'
+type: object
+required:
+- id
+- title
+- owner
+- lifecycle
+- criticality
+- from
+- to
+- purpose
+- integration_type
+- protocol
+- auth
+- timeout
+- retry
+- idempotent
+additionalProperties: false
+properties:
+  id:
+    type: string
+    pattern: ^[A-Za-z][A-Za-z0-9-]*$
+  title:
+    type: string
+    minLength: 2
+  owner:
+    type: string
+    minLength: 2
+  lifecycle:
+    enum:
+    - planned
+    - active
+    - deprecated
+    - retired
+  criticality:
+    enum:
+    - low
+    - medium
+    - high
+  from:
+    type: string
+    minLength: 2
+  to:
+    type: string
+    minLength: 2
+  purpose:
+    type: string
+    minLength: 2
+  integration_type:
+    type: string
+    minLength: 2
+  protocol:
+    type: string
+    minLength: 2
+  format:
+    type: string
+    minLength: 2
+  auth:
+    type: string
+    minLength: 2
+  timeout:
+    type: string
+    minLength: 2
+  retry:
+    type: string
+    minLength: 2
+  idempotent:
+    enum:
+    - true
+    - false
+    - null
+    description: 'null значит: решение ещё не принято'

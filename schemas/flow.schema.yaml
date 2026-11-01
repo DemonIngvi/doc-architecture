@@ -1,0 +1,58 @@
+$schema: https://json-schema.org/draft/2020-12/schema
+title: 'Поток данных: что, откуда и куда движется'
+type: object
+required:
+- id
+- title
+- owner
+- lifecycle
+- criticality
+- from
+- to
+- objects
+- trigger
+- flow_type
+additionalProperties: false
+properties:
+  id:
+    type: string
+    pattern: ^[A-Za-z][A-Za-z0-9-]*$
+  title:
+    type: string
+    minLength: 2
+  owner:
+    type: string
+    minLength: 2
+  lifecycle:
+    enum:
+    - planned
+    - active
+    - deprecated
+    - retired
+  criticality:
+    enum:
+    - low
+    - medium
+    - high
+  from:
+    type: string
+    minLength: 2
+  to:
+    type: string
+    minLength: 2
+  objects:
+    type: array
+    items:
+      type: string
+  trigger:
+    type: string
+    minLength: 2
+  flow_type:
+    type: string
+    minLength: 2
+  volume:
+    type: string
+    minLength: 2
+  over:
+    type: string
+    description: Интеграция, по которой идёт поток

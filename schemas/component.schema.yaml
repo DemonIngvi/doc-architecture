@@ -1,12 +1,48 @@
 $schema: https://json-schema.org/draft/2020-12/schema
-title: Компонент (C2)
+title: 'Компонент: контейнер внутри системы'
 type: object
-required: [id, title, responsibility, level]
+required:
+- id
+- title
+- owner
+- lifecycle
+- criticality
+- system
+- responsibility
 additionalProperties: false
 properties:
-  id: {type: string, pattern: '^[a-z][a-z0-9-]*$'}
-  title: {type: string}
-  level: {const: C2}
-  responsibility: {type: string, minLength: 3}
-  tech: {type: string}
-  host: {type: string, description: Компонент-хост для встроенного компонента}
+  id:
+    type: string
+    pattern: ^[A-Za-z][A-Za-z0-9-]*$
+  title:
+    type: string
+    minLength: 2
+  owner:
+    type: string
+    minLength: 2
+  lifecycle:
+    enum:
+    - planned
+    - active
+    - deprecated
+    - retired
+  criticality:
+    enum:
+    - low
+    - medium
+    - high
+  system:
+    type: string
+    minLength: 2
+  responsibility:
+    type: string
+    minLength: 2
+  tech:
+    type: string
+    minLength: 2
+  functions:
+    type: array
+    items:
+      type: string
+  host:
+    type: string

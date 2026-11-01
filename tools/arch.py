@@ -10,6 +10,7 @@
   build <dir> --spine <file>  собрать Spine из единиц
   check <dir> --spine <file>  проверить схемы, ссылки и ручные правки Spine
   unit <dir> <ID>             показать единицу и её связи
+  impact <dir> <ID>           показать, что затронет отказ или изменение единицы
   pack <dir> --reqs FR-1,...  узкий пакет архитектуры для проверки требований
 """
 from __future__ import annotations
@@ -215,13 +216,14 @@ def build_spine(files):
 
 def schema_for(rel):
     top = rel.split("/")[0]
-    names = {"decisions": "decision", "components": "component", "blocks": "block",
-             "interfaces": "interface", "stores": "store"}
+    names = {"decisions": "decision", "components": "component", "blocks": "block", "integrations": "integration",
+             "stores": "store", "actors": "actor", "processes": "process", "services": "service", "systems": "system",
+             "functions": "function", "data": "data", "flows": "flow", "nodes": "node"}
     if rel.endswith("_order.yaml"):
         return None
-    if top in names:
+    if top in names and "/" in rel:
         return names[top]
-    return {"params.yaml": "params", "fmea.yaml": "fmea", "quality.yaml": "quality"}.get(rel)
+    return {"params.yaml": "params", "fmea.yaml": "fmea", "quality.yaml": "quality", "types.yaml": "types"}.get(rel)
 
 
 def check(root, spine):
@@ -239,10 +241,6 @@ def check(root, spine):
         problems += [f"AD вне порядка: {ad}" for ad in sorted(real - set(order))]
         problems += [f"В порядке нет файла: {ad}" for ad in sorted(set(order) - real)]
     components = {path.stem for path in (root / "components").glob("*.yaml")} if (root / "components").exists() else set()
-    for path in sorted((root / "interfaces").glob("*.yaml")) if (root / "interfaces").exists() else []:
-        unit = load(path)
-        problems += [f"{path.name}: неизвестный компонент {unit[side]}"
-                     for side in ("from", "to") if components and unit.get(side) not in components]
     for folder in sorted((root / "blocks").iterdir()) if (root / "blocks").exists() else []:
         if folder.is_dir() and components and folder.name not in components:
             problems.append(f"blocks/{folder.name}: нет такого компонента")
@@ -269,6 +267,55 @@ def show_unit(root, unit_id):
     return dump({k: v for k, v in unit.items() if v not in (None, [], "")}) + f"связано: {', '.join(links) or 'нет'}\n"
 
 
+MODEL_FOLDERS = ("actors", "processes", "services", "systems", "functions", "components", "data", "stores",
+                 "flows", "integrations", "nodes", "blocks")
+SKIP_FIELDS = {"id", "title", "owner", "lifecycle", "criticality"}
+
+
+def model_units(root):
+    return {unit["id"]: unit for path, unit in all_units(root) if path.relative_to(root).parts[0] in MODEL_FOLDERS}
+
+
+def references(unit, ids):
+    """Находит в единице значения, которые являются кодами других единиц."""
+    found, stack = set(), [v for k, v in unit.items() if k not in SKIP_FIELDS]
+    while stack:
+        value = stack.pop()
+        if isinstance(value, dict):
+            stack += value.values()
+        elif isinstance(value, list):
+            stack += value
+        elif isinstance(value, str) and value in ids:
+            found.add(value)
+    return found
+
+
+def impact(root, unit_id):
+    """Что затронет отказ или изменение единицы: всё, что ссылается на неё прямо или через других."""
+    units = model_units(root)
+    if unit_id not in units:
+        raise SystemExit(f"Единица {unit_id} не найдена")
+    used_by = {key: {other for other, unit in units.items() if key in references(unit, units)} for key in units}
+    seen, queue = set(), [unit_id]
+    while queue:
+        for other in used_by[queue.pop()] - seen - {unit_id}:
+            seen.add(other)
+            queue.append(other)
+    return [f"{key}: {units[key]['title']} ({units[key]['criticality']})" for key in sorted(seen)]
+
+
+def model_pack(root, wanted):
+    """Функции требований и то, с чем они связаны на один шаг: данные, потоки, интеграции."""
+    units = model_units(root)
+    chosen = {key for key, unit in units.items() if wanted & set(unit.get("reqs") or []) and unit.get("system")}
+    data = {name for key in chosen for name in (*units[key]["reads"], *units[key]["writes"])}
+    flows = {key for key, unit in units.items() if unit.get("flow_type") and data & set(unit["objects"])}
+    channels = {units[key]["over"] for key in flows if units[key].get("over")}
+    keep = sorted(chosen | data | flows | (channels & set(units)))
+    trimmed = [{k: v for k, v in units[key].items() if k not in ("owner", "lifecycle", "criticality")} for key in keep]
+    return ["## Модель системы", dump(trimmed)] if trimmed else []
+
+
 def pack(root, reqs):
     """Собирает только то, что относится к требованиям, вместо всего Spine."""
     wanted = set(reqs)
@@ -287,7 +334,7 @@ def pack(root, reqs):
         out += ["## Где живёт", dump(rows)]
     if (root / "deferred.yaml").exists():
         out += ["## Отложено", dump(load(root / "deferred.yaml")["items"])]
-    return "\n".join(out)
+    return "\n".join(out + model_pack(root, wanted))
 
 
 def expand(ids):
@@ -312,6 +359,9 @@ def main():
         cmd.add_argument("--out", type=pathlib.Path)
         cmd.add_argument("--spine", type=pathlib.Path)
     cmd = sub.add_parser("unit")
+    cmd.add_argument("path", type=pathlib.Path)
+    cmd.add_argument("id")
+    cmd = sub.add_parser("impact")
     cmd.add_argument("path", type=pathlib.Path)
     cmd.add_argument("id")
     cmd = sub.add_parser("pack")
@@ -340,6 +390,8 @@ def main():
         sys.exit(1 if problems else 0)
     elif args.command == "unit":
         print(show_unit(args.path, args.id))
+    elif args.command == "impact":
+        print("\n".join(impact(args.path, args.id)) or "Ничего не затронуто")
     elif args.command == "pack":
         print(pack(args.path, [r.strip() for r in args.reqs.split(",")]))
 

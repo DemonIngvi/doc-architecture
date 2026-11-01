@@ -1,0 +1,6 @@
+# Скопируйте в docs/architecture/types.yaml. Новое значение добавляйте сюда, а не прямо в объект.
+system_kind: [own, external, vendor]
+integration_type: [sync-api, async-queue, webhook, event-stream, file, shared-db, ui]
+flow_type: [command, query, event, replication, batch]
+data_class: [reference, master, transactional, event, derived]
+sensitivity: [public, internal, personal, secret]

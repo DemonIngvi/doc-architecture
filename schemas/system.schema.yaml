@@ -1,0 +1,38 @@
+$schema: https://json-schema.org/draft/2020-12/schema
+title: 'Система: своя или внешняя'
+type: object
+required:
+- id
+- title
+- owner
+- lifecycle
+- criticality
+- kind
+additionalProperties: false
+properties:
+  id:
+    type: string
+    pattern: ^[A-Za-z][A-Za-z0-9-]*$
+  title:
+    type: string
+    minLength: 2
+  owner:
+    type: string
+    minLength: 2
+  lifecycle:
+    enum:
+    - planned
+    - active
+    - deprecated
+    - retired
+  criticality:
+    enum:
+    - low
+    - medium
+    - high
+  kind:
+    type: string
+    minLength: 2
+  vendor:
+    type: string
+    minLength: 2

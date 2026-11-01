@@ -1,22 +1,63 @@
 $schema: https://json-schema.org/draft/2020-12/schema
-title: Хранилище данных
+title: 'Хранилище: физическое размещение данных'
 type: object
-required: [id, title, owner, writes, reads, deletes, delete_trigger, backup]
+required:
+- id
+- title
+- owner
+- lifecycle
+- criticality
+- objects
+- tables
+- writes
+- reads
+- deletes
+- delete_trigger
+- backup
 additionalProperties: false
 properties:
-  id: {type: string, pattern: '^S\d+$'}
-  title: {type: string}
-  owner: {type: string}
-  tables:
-    description: Таблицы хранилища, на них ссылаются карточки блоков
+  id:
+    type: string
+    pattern: ^[A-Za-z][A-Za-z0-9-]*$
+  title:
+    type: string
+    minLength: 2
+  owner:
+    type: string
+    minLength: 2
+  lifecycle:
+    enum:
+    - planned
+    - active
+    - deprecated
+    - retired
+  criticality:
+    enum:
+    - low
+    - medium
+    - high
+  objects:
     type: array
-    items: {type: string}
+    items:
+      type: string
+  tables:
+    type: array
+    items:
+      type: string
   writes:
     type: array
-    items: {type: string}
+    items:
+      type: string
   reads:
     type: array
-    items: {type: string}
-  deletes: {type: string}
-  delete_trigger: {type: string}
-  backup: {type: string}
+    items:
+      type: string
+  deletes:
+    type: string
+    minLength: 2
+  delete_trigger:
+    type: string
+    minLength: 2
+  backup:
+    type: string
+    minLength: 2
