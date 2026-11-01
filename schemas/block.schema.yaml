@@ -1,0 +1,55 @@
+$schema: https://json-schema.org/draft/2020-12/schema
+title: Блок (C3), карточка готовности к реализации
+type: object
+required: [id, title, kind, does, io, data, params, reqs, on_failure]
+additionalProperties: false
+properties:
+  id: {type: string}
+  title: {type: string}
+  kind: {enum: [service, ui, storage, config]}
+  does:
+    type: array
+    minItems: 1
+    items: {type: string}
+  tech: {type: string}
+  stories:
+    type: array
+    items: {type: string}
+  io:
+    type: array
+    items:
+      type: object
+      required: [dir, with, what]
+      additionalProperties: false
+      properties:
+        dir: {enum: [in, out]}
+        with: {type: string}
+        what: {type: string}
+        via: {type: string, description: Код интерфейса}
+  data:
+    description: Таблицы блока или строка «нет» с причиной
+    oneOf:
+      - {type: string, pattern: '^нет: .+'}
+      - type: array
+        items:
+          type: object
+          required: [table, access]
+          additionalProperties: false
+          properties:
+            table: {type: string}
+            access: {enum: [read, write, read-write]}
+            why: {type: string}
+  params:
+    oneOf:
+      - {type: string, pattern: '^нет: .+'}
+      - type: array
+        items: {type: string}
+  reqs:
+    type: array
+    minItems: 1
+    items: {type: string}
+  tasks:
+    type: array
+    items: {type: string}
+  on_failure: {type: string, minLength: 3}
+  why: {type: string}

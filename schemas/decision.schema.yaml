@@ -1,0 +1,19 @@
+$schema: https://json-schema.org/draft/2020-12/schema
+title: Архитектурное решение
+type: object
+required: [id, title, binds, prevents, rule]
+additionalProperties: false
+properties:
+  id: {type: string, pattern: '^AD-\d+$'}
+  title: {type: string, minLength: 3}
+  binds:
+    type: array
+    minItems: 1
+    items: {type: string}
+  prevents: {type: string, minLength: 3}
+  rule: {type: string, minLength: 3}
+  why: {type: string, description: Почему выбрано так}
+  source: {type: string, description: Исследование или замечание}
+  decided_by: {enum: [human, agent]}
+  date: {type: string}
+  replaces: {type: string, pattern: '^AD-\d+$'}

@@ -1,0 +1,19 @@
+$schema: https://json-schema.org/draft/2020-12/schema
+title: Таблица параметров
+type: object
+required: [params]
+additionalProperties: false
+properties:
+  params:
+    type: array
+    items:
+      type: object
+      required: [name, default, min, max, why]
+      additionalProperties: false
+      properties:
+        name: {type: string}
+        default: {}
+        min: {}
+        max: {}
+        why: {type: string}
+        owner: {type: string}

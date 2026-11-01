@@ -1,0 +1,18 @@
+$schema: https://json-schema.org/draft/2020-12/schema
+title: Хранилище данных
+type: object
+required: [id, title, owner, writes, reads, deletes, delete_trigger, backup]
+additionalProperties: false
+properties:
+  id: {type: string, pattern: '^S\d+$'}
+  title: {type: string}
+  owner: {type: string}
+  writes:
+    type: array
+    items: {type: string}
+  reads:
+    type: array
+    items: {type: string}
+  deletes: {type: string}
+  delete_trigger: {type: string}
+  backup: {type: string}

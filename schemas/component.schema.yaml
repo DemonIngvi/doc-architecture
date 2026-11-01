@@ -1,0 +1,12 @@
+$schema: https://json-schema.org/draft/2020-12/schema
+title: Компонент (C2)
+type: object
+required: [id, title, responsibility, level]
+additionalProperties: false
+properties:
+  id: {type: string, pattern: '^[a-z][a-z0-9-]*$'}
+  title: {type: string}
+  level: {const: C2}
+  responsibility: {type: string, minLength: 3}
+  tech: {type: string}
+  host: {type: string, description: Компонент-хост для встроенного компонента}

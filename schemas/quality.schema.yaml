@@ -1,0 +1,21 @@
+$schema: https://json-schema.org/draft/2020-12/schema
+title: Сценарии качества
+type: object
+required: [scenarios]
+additionalProperties: false
+properties:
+  scenarios:
+    type: array
+    items:
+      type: object
+      required: [id, attribute, priority, stimulus, response, response_measure, fitness]
+      additionalProperties: false
+      properties:
+        id: {type: string}
+        nfr: {type: string}
+        attribute: {type: string}
+        priority: {enum: [H, M, L]}
+        stimulus: {type: string}
+        response: {type: string}
+        response_measure: {type: string, description: Обязательно измеримый отклик}
+        fitness: {type: string, description: Как проверяется автоматически или вручную}
