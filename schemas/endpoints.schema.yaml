@@ -1,0 +1,23 @@
+$schema: https://json-schema.org/draft/2020-12/schema
+title: Эндпоинты компонента
+type: object
+required: [rows]
+additionalProperties: false
+properties:
+  notes: {type: array, items: {type: string}}
+  rows:
+    type: array
+    items:
+      type: object
+      required: [method, path]
+      additionalProperties: false
+      properties:
+        section: {type: string}
+        method: {type: string}
+        path: {type: string}
+        status: {type: string}
+        does: {type: string}
+        caller: {type: string}
+        stories: {type: array, items: {type: string}}
+        reqs: {type: array, items: {type: string}}
+        via: {type: array, items: {type: string}}

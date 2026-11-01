@@ -103,6 +103,12 @@ properties:
                 type: string
               label:
                 type: string
+        lane:
+          type: string
+        artifacts:
+          type: array
+          items:
+            type: string
   component:
     type: string
   stories:

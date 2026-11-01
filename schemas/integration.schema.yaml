@@ -71,3 +71,14 @@ properties:
     - false
     - null
     description: 'null значит: решение ещё не принято'
+  mode:
+    type: string
+  via:
+    type: string
+  also:
+    type: array
+    items:
+      type: string
+  data_in_response:
+    type: boolean
+    description: 'Данные идут в ответе: вызывает from, получает from'

@@ -1,0 +1,10 @@
+$schema: https://json-schema.org/draft/2020-12/schema
+title: Сценарий взаимодействия
+type: object
+required: [id, title, diagram]
+additionalProperties: false
+properties:
+  id: {type: string}
+  title: {type: string}
+  component: {type: string}
+  diagram: {type: string, description: Текст sequenceDiagram в Mermaid}

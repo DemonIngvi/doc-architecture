@@ -59,3 +59,19 @@ properties:
         note:
           type: string
           minLength: 2
+        pk:
+          type: boolean
+        fk:
+          type: string
+        required:
+          type: boolean
+  source:
+    type: object
+    additionalProperties: false
+    properties:
+      kind:
+        type: string
+      ref:
+        type: string
+      why:
+        type: string

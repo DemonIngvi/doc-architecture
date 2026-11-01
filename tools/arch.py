@@ -11,6 +11,7 @@
   check <dir> --spine <file>  проверить схемы, ссылки и ручные правки Spine
   unit <dir> <ID>             показать единицу и её связи
   impact <dir> <ID>           показать, что затронет отказ или изменение единицы
+  assemble <dir> --prd --epics собрать общие PRD и эпики из папок компонентов
   pack <dir> --reqs FR-1,...  узкий пакет архитектуры для проверки требований
 """
 from __future__ import annotations
@@ -214,11 +215,21 @@ def build_spine(files):
     return f"---\n{source(files, 'frontmatter.yaml').rstrip(chr(10))}\n---\n" + "\n".join(parts)
 
 
+def unit_type(rel):
+    """Папка единицы: общая вроде flows/F1.yaml или внутри компонента вроде components/api/flows/F1.yaml."""
+    parts = rel.split("/")
+    if parts[0] == "components" and len(parts) > 2:
+        return "components" if parts[2] == "component.yaml" else parts[2]
+    return parts[0]
+
+
 def schema_for(rel):
-    top = rel.split("/")[0]
+    if rel.endswith("/endpoints.yaml"):
+        return "endpoints"
+    top = unit_type(rel)
     names = {"decisions": "decision", "components": "component", "blocks": "block", "integrations": "integration",
              "stores": "store", "actors": "actor", "processes": "process", "services": "service", "systems": "system",
-             "functions": "function", "data": "data", "flows": "flow", "nodes": "node", "stories": "story"}
+             "functions": "function", "data": "data", "flows": "flow", "nodes": "node", "stories": "story", "sequences": "sequence"}
     if rel.endswith("_order.yaml"):
         return None
     if top in names and "/" in rel:
@@ -241,6 +252,7 @@ def check(root, spine):
         problems += [f"AD вне порядка: {ad}" for ad in sorted(real - set(order))]
         problems += [f"В порядке нет файла: {ad}" for ad in sorted(set(order) - real)]
     components = {path.stem for path in (root / "components").glob("*.yaml")} if (root / "components").exists() else set()
+    components |= {path.parent.name for path in root.glob("components/*/component.yaml")}
     for folder in sorted((root / "blocks").iterdir()) if (root / "blocks").exists() else []:
         if folder.is_dir() and components and folder.name not in components:
             problems.append(f"blocks/{folder.name}: нет такого компонента")
@@ -273,7 +285,7 @@ SKIP_FIELDS = {"id", "title", "owner", "lifecycle", "criticality"}
 
 
 def model_units(root):
-    return {unit["id"]: unit for path, unit in all_units(root) if path.relative_to(root).parts[0] in MODEL_FOLDERS}
+    return {unit["id"]: unit for path, unit in all_units(root) if unit_type(path.relative_to(root).as_posix()) in MODEL_FOLDERS}
 
 
 def references(unit, ids):
@@ -337,6 +349,39 @@ def pack(root, reqs, with_model=False):
     return "\n".join(out + (model_pack(root, wanted) if with_model else []))
 
 
+def render_story(story, title_nfr=""):
+    criteria = []
+    for item in story["accept"]:
+        given, arrow, then = item.partition("→")
+        criteria.append(f"**Given** {given.strip()}\n**When** выполняется сценарий\n**Then** {then.strip()}" if arrow else f"**Given** компонент работает\n**When** выполняется сценарий\n**Then** {given.strip()}")
+    head = f"### Story {story['number']}: {story['want'][:120]}\n\nAs a {story['role']},\nI want {story['want']},\nSo that {story.get('so_that', '')}.\n"
+    return f"{head}\nКод: {story.get('source', story['id'])}. Требования: {', '.join(story['reqs']) or 'нет'}.\n\n**Acceptance Criteria:**\n\n" + "\n\n".join(criteria) + "\n"
+
+
+def assemble(root, prd_path, epics_path):
+    """Собирает общие PRD и эпики из папок компонентов. Как и Spine, они руками не правятся."""
+    folders = [root / "components" / name for name in load(root / "components" / "_order.yaml")["components"]]
+    parts = [read(root / "prd" / "head.md")]
+    parts += [read(folder / "prd.md") for folder in folders if (folder / "prd.md").exists()]
+    parts.append(read(root / "prd" / "tail.md"))
+    write(prd_path, "\n".join(parts))
+    epics, coverage, body = [], [], []
+    for number, folder in enumerate(folders, 1):
+        stories = sorted((load(path) for path in (folder / "stories").glob("*.yaml")), key=lambda s: [int(p) for p in s["number"].split(".")])
+        if not stories:
+            continue
+        unit = load(folder / "component.yaml")
+        epics.append(f"{stories[0]['number'].split('.')[0]}. {unit['title']}")
+        body.append(f"## Epic {stories[0]['number'].split('.')[0]}: {unit['title']}\n\n{unit['responsibility']}\n")
+        body += [render_story(story) for story in stories]
+        coverage += [(req, story["number"]) for story in stories for req in story["reqs"] if req.startswith("FR-")]
+    rows = sorted(set(coverage), key=lambda pair: (int(pair[0].split("-")[1]), pair[1]))
+    table = "\n".join(f"| {req} | {story} |" for req, story in rows)
+    head = read(root / "prd" / "epics-head.md")
+    write(epics_path, f"{head}\n### FR Coverage Map\n\n| FR | История |\n| --- | --- |\n{table}\n\n## Epic List\n\n" + "\n".join(epics) + "\n\n" + "\n".join(body))
+    return len(folders), len(rows)
+
+
 def expand(ids):
     """Разворачивает записи вида «FR-1, FR-2» и «FR-11 — FR-15» в отдельные коды."""
     result = set()
@@ -361,6 +406,10 @@ def main():
     cmd = sub.add_parser("unit")
     cmd.add_argument("path", type=pathlib.Path)
     cmd.add_argument("id")
+    cmd = sub.add_parser("assemble")
+    cmd.add_argument("path", type=pathlib.Path)
+    cmd.add_argument("--prd", type=pathlib.Path, required=True)
+    cmd.add_argument("--epics", type=pathlib.Path, required=True)
     cmd = sub.add_parser("impact")
     cmd.add_argument("path", type=pathlib.Path)
     cmd.add_argument("id")
@@ -391,6 +440,9 @@ def main():
         sys.exit(1 if problems else 0)
     elif args.command == "unit":
         print(show_unit(args.path, args.id))
+    elif args.command == "assemble":
+        count, rows = assemble(args.path, args.prd, args.epics)
+        print(f"Собрано компонентов: {count}, строк покрытия: {rows}")
     elif args.command == "impact":
         print("\n".join(impact(args.path, args.id)) or "Ничего не затронуто")
     elif args.command == "pack":
